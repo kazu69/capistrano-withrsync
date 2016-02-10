@@ -17,6 +17,7 @@ namespace :rsync do
   )
 
   set :rsync_src, 'tmp/deploy'
+  set :archive_src, 'tmp/archive'
   set :rsync_dest, 'shared/deploy'
 
   set :rsync_dest_fullpath, -> {
@@ -80,15 +81,23 @@ namespace :rsync do
     end
   end
 
+  desc 'Create source archive'
+  task create_archive: :'rsync:stage' do
+    run_locally do
+      execute :mkdir, '-pv', fetch(:archive_src) unless File.directory? fetch(:archive_src)
+      execute :git, :archive, fetch(:branch), '| tar -x -f - -C', fetch(:archive_src)
+    end
+  end
+
   desc 'Sync to deployment hosts from local'
-  task sync: :'rsync:stage' do
+  task sync: :'create_archive' do
     last_rsync_to = nil
     release_roles(:all).each do |role|
       unless Capistrano::Configuration.env.filter(role).roles_array.empty?
         run_locally do
           user = "#{role.user}@" if !role.user.nil?
           rsync_options = "#{fetch(:rsync_options).join(' ')}"
-          rsync_from = "#{fetch(:rsync_src)}/"
+          rsync_from = "#{fetch(:archive_src)}/"
           rsync_to = "#{user}#{role.hostname}:#{fetch(:rsync_dest_fullpath) || release_path}"
 
           unless rsync_to == last_rsync_to
