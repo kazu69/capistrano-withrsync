@@ -17,7 +17,7 @@ namespace :rsync do
   )
 
   set :rsync_src, 'tmp/deploy'
-  set :archive_src, 'tmp/archive'
+  set :release_src, 'tmp/deploy/release'
   set :rsync_dest, 'shared/deploy'
 
   set :rsync_dest_fullpath, -> {
@@ -67,7 +67,7 @@ namespace :rsync do
     next if File.directory? fetch(:rsync_src)
 
     run_locally do
-      execute :git, :clone, fetch(:repo_url), fetch(:rsync_src)
+      execute :git, '--mirror', :clone, fetch(:repo_url), fetch(:rsync_src)
     end
   end
 
@@ -84,10 +84,11 @@ namespace :rsync do
   desc 'Create source archive'
   task create_archive: :'rsync:stage' do
     run_locally do
-      unless File.directory? fetch(:archive_src)
-        execute :mkdir, '-pv', fetch(:archive_src)
+      unless File.directory? fetch(:release_src)
+        execute :mkdir, '-pv', fetch(:release_src)
       end
-      execute :git, :archive, fetch(:branch), '| tar -x -f - -C', fetch(:archive_src)
+      execute :git, :remote, :update
+      execute :git, :archive, fetch(:branch), '| tar -x -f - -C', fetch(:release_src)
     end
   end
 
@@ -98,7 +99,7 @@ namespace :rsync do
       run_locally do
         user = "#{role.user}@" if !role.user.nil?
         rsync_options = "#{fetch(:rsync_options).join(' ')}"
-        rsync_from = "#{fetch(:archive_src)}/"
+        rsync_from = "#{fetch(:release_src)}/"
         rsync_to = "#{user}#{role.hostname}:#{fetch(:rsync_dest_fullpath) || release_path}"
 
         unless rsync_to == last_rsync_to
