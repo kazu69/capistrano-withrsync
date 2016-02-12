@@ -67,7 +67,7 @@ namespace :rsync do
     next if File.directory? fetch(:rsync_src)
 
     run_locally do
-      execute :git, '--mirror', :clone, fetch(:repo_url), fetch(:rsync_src)
+      execute :git, :clone, '--mirror', fetch(:repo_url), fetch(:rsync_src)
     end
   end
 
