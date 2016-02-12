@@ -71,18 +71,8 @@ namespace :rsync do
     end
   end
 
-  desc 'Stage the repository in a local directory'
-  task stage: :'rsync:create_src' do
-    run_locally do
-      within fetch(:rsync_src) do
-        execute :git, :fetch, '--quiet --all --prune'
-        execute :git, :reset, "--hard origin/#{fetch(:branch)}"
-      end
-    end
-  end
-
   desc 'Create source archive'
-  task create_archive: :'rsync:stage' do
+  task create_archive: :'rsync:create_src' do
     run_locally do
       unless File.directory? fetch(:release_src)
         execute :mkdir, '-pv', fetch(:release_src)
