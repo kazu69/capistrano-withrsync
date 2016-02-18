@@ -62,7 +62,7 @@ namespace :rsync do
     end
   end
 
-  desc 'Create a source for rsync'
+  desc 'Create a bare repository'
   task :create_src do
     next if File.directory? fetch(:rsync_src)
 
@@ -71,12 +71,17 @@ namespace :rsync do
     end
   end
 
-  desc 'Create source archive'
-  task create_archive: :'rsync:create_src' do
+  desc 'Create a archive directory'
+  task create_archive_dir: :'rsync:create_src' do
     run_locally do
-      unless File.directory? fetch(:release_src)
-        execute :mkdir, '-pv', fetch(:release_src)
-      end
+      execute :rm, '-rf', fetch(:release_src) if File.directory? fetch(:release_src)
+      execute :mkdir, '-pv', fetch(:release_src)
+    end
+  end
+
+  desc 'Create source archive'
+  task create_archive: :'rsync:create_archive_dir' do
+    run_locally do
       execute :git, :remote, :update
       execute :git, :archive, fetch(:branch), '| tar -x -f - -C', fetch(:release_src)
     end
